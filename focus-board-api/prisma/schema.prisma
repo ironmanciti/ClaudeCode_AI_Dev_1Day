@@ -1,0 +1,27 @@
+// Focus Board 데이터 모델 (spec.md 3장)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// 할 일 중요도
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// 할 일
+model Task {
+  id        Int      @id @default(autoincrement())
+  title     String
+  priority  Priority @default(MEDIUM)
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
