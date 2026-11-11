@@ -39,11 +39,34 @@
 - percent = round(done / total × 100), 할 일이 0개면 0
 
 ## 5. 테스트 계획 (`tests/tasks.test.ts`)
-| 구분 | 케이스 | 기대 결과 |
-|---|---|---|
-| 정상 | 생성 / 목록 / done 필터 / 단건 / 완료 처리 / 삭제 / 진행률(3개 중 1개 완료) | 201, 200, 204, percent 33 |
-| 경계값 | title 100자 / 101자 / priority 생략 / 앞뒤 공백 / 빈 목록 | 201 / 400 / MEDIUM / 공백 제거 / `[]`, 0% |
-| 실패 | 빈 title / title 누락 / 잘못된 priority / 깨진 JSON / 없는 id / 숫자 아닌 id / 빈 PATCH / done 타입 오류 / 잘못된 done 필터 / 없는 경로 | 400 또는 404 |
+전제: 각 테스트 전에 Task 테이블을 비워(`beforeEach`) 테스트끼리 데이터가 섞이지 않게 한다.
+
+### 5-1. 정상 케이스
+| ID | 테스트 이름 | 입력 | 기대 응답 (status, body) |
+|---|---|---|---|
+| N1 | 할 일을 생성하고 단건 조회한다 | `POST /api/tasks` `{ "title": "운동하기", "priority": "HIGH" }` → `Location` 경로로 `GET` | 201, `Location: /api/tasks/{id}`, `{ id, title: "운동하기", priority: "HIGH", done: false, createdAt, updatedAt }` / 단건 조회 200, 생성 응답과 동일 |
+| N2 | 목록을 조회하고 done으로 필터링한다 | 3개 생성 후 1개 완료 → `GET /api/tasks`, `?done=true`, `?done=false` | 200, 배열 길이 3 / 1 (모두 `done: true`) / 2 (모두 `done: false`) |
+| N3 | 할 일을 완료 처리한다 | `PATCH /api/tasks/{id}` `{ "done": true }` → 다시 `GET` | 200, `done: true`, title·priority는 그대로 / 재조회에서도 `done: true` 유지 |
+| N4 | 할 일을 삭제한다 | `DELETE /api/tasks/{id}` → 다시 `GET` | 204, body 없음 / 재조회 404 `NOT_FOUND` |
+| N5 | 진행률을 계산한다 | 3개 생성 후 1개 완료 → `GET /api/tasks/stats` | 200, `{ total: 3, done: 1, percent: 33 }` |
+
+### 5-2. 경계값 케이스
+| ID | 테스트 이름 | 입력 | 기대 응답 (status, body) |
+|---|---|---|---|
+| B1 | title 100자는 허용한다 | `POST` `{ "title": "가" × 100 }` | 201, title 길이 100 |
+| B2 | title 101자는 거부한다 | `POST` `{ "title": "가" × 101 }` | 400, `error.code: "VALIDATION_ERROR"`, `details` 포함 |
+| B3 | priority를 생략하면 MEDIUM이 된다 | `POST` `{ "title": "책 읽기" }` | 201, `priority: "MEDIUM"`, `done: false` |
+| B4 | title 앞뒤 공백을 제거한다 | `POST` `{ "title": "  운동하기  " }` | 201, `title: "운동하기"` |
+| B5 | 할 일이 없을 때 빈 목록과 0%를 반환한다 | 데이터 없음 → `GET /api/tasks`, `GET /api/tasks/stats` | 200, `[]` / 200, `{ total: 0, done: 0, percent: 0 }` |
+
+### 5-3. 실패 케이스
+| ID | 테스트 이름 | 입력 | 기대 응답 (status, body) |
+|---|---|---|---|
+| F1 | 생성 본문이 잘못되면 400을 반환한다 | `POST` `{ "title": "" }` / `{}` (title 누락) / `{ "title": "   " }` / `{ "title": "운동", "priority": "URGENT" }` | 모두 400, `error.code: "VALIDATION_ERROR"`, `details` 포함 |
+| F2 | 깨진 JSON은 400을 반환한다 | `POST` 원문 `{"title":` (`Content-Type: application/json`) | 400, `error.code: "INVALID_JSON"` |
+| F3 | 수정 본문이 잘못되면 400을 반환한다 | `PATCH /api/tasks/{id}` `{}` (빈 본문) / `{ "done": "yes" }` (타입 오류) | 모두 400, `error.code: "VALIDATION_ERROR"`, 원본 데이터는 변경되지 않음 |
+| F4 | 잘못된 id·필터는 400을 반환한다 | `GET`·`PATCH`·`DELETE /api/tasks/abc` / `GET /api/tasks?done=maybe` | 모두 400, `error.code: "VALIDATION_ERROR"` |
+| F5 | 없는 리소스·경로는 404를 반환한다 | `GET`·`PATCH`·`DELETE /api/tasks/9999` / `GET /api/unknown` | 모두 404, `error.code: "NOT_FOUND"` |
 
 통과 판정 명령: `npm test`
 
@@ -52,9 +75,7 @@
 
 | 파일 | 역할 |
 |---|---|
-| `public/index.html` | 화면 구조 |
-| `public/style.css` | 카드형 디자인, 반응형 |
-| `public/app.js` | API 호출, 화면 갱신 |
+| `public/index.html` | 화면 구조 + `<style>`(카드형 디자인, 반응형) + `<script>`(API 호출, 화면 갱신)를 한 파일에 작성 |
 
 화면 구성 (아이디어):
 ```

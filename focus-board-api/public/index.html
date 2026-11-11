@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Focus Board</title>
+  <style>
+    /* ===== 색상 토큰 ===== */
+    :root {
+      --bg: #f3f4f8;
+      --card: #ffffff;
+      --text: #1f2330;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --high: #dc2626;
+      --high-bg: #fee2e2;
+      --medium: #d97706;
+      --medium-bg: #fef3c7;
+      --low: #16a34a;
+      --low-bg: #dcfce7;
+      --error: #b91c1c;
+      --error-bg: #fef2f2;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.05);
+      --shadow-hover: 0 4px 10px rgba(0, 0, 0, 0.08), 0 10px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 32px 16px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ===== 카드 공통 ===== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    header.card { text-align: center; }
+    header h1 { margin: 0; font-size: 1.6rem; }
+    header p { margin: 4px 0 0; color: var(--muted); }
+
+    h2 { margin: 0 0 12px; font-size: 1.1rem; }
+
+    /* ===== 오류 배너 ===== */
+    .banner {
+      background: var(--error-bg);
+      color: var(--error);
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+    }
+
+    /* ===== 입력 폼 ===== */
+    form { display: flex; flex-direction: column; gap: 12px; }
+    label { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+    }
+    input[type="text"]:focus, select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      border-color: transparent;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .form-row .field { flex: 1; }
+
+    .btn-add {
+      padding: 10px 22px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: #dc2626;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-add:hover { background: #b91c1c; }
+    .btn-add:disabled { opacity: 0.6; cursor: default; }
+
+    .form-error {
+      margin: 0;
+      color: var(--error);
+      font-size: 0.9rem;
+      min-height: 1.35em;
+    }
+
+    /* ===== 할 일 목록 ===== */
+    ul.tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+    .task {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .task:hover { background: #f9fafb; border-color: #d1d5db; }
+
+    .task input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .task .title {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .task.done .title { text-decoration: line-through; color: var(--muted); }
+
+    .badge {
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .badge.HIGH { color: var(--high); background: var(--high-bg); }
+    .badge.MEDIUM { color: var(--medium); background: var(--medium-bg); }
+    .badge.LOW { color: var(--low); background: var(--low-bg); }
+
+    .btn-delete {
+      flex-shrink: 0;
+      padding: 4px 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .btn-delete:hover { color: var(--high); border-color: var(--high); background: var(--high-bg); }
+
+    .empty { margin: 0; color: var(--muted); text-align: center; padding: 12px 0; }
+
+    /* ===== 진행률 ===== */
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .bar {
+      height: 12px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+    .celebrate {
+      margin: 12px 0 0;
+      text-align: center;
+      font-weight: 700;
+      color: var(--low);
+    }
+
+    /* ===== 모바일 (375px 등) ===== */
+    @media (max-width: 480px) {
+      main { padding-top: 20px; }
+      .form-row { flex-direction: column; align-items: stretch; }
+      .btn-add { width: 100%; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="card">
+      <h1>Daily Focus Board</h1>
+      <p>오늘 가장 중요한 일은?</p>
+    </header>
+
+    <!-- 네트워크 오류·500 응답 표시 -->
+    <div id="banner" class="banner" role="alert" hidden></div>
+
+    <section class="card">
+      <form id="task-form" novalidate>
+        <div class="field">
+          <label for="title">할 일</label>
+          <input id="title" type="text" placeholder="할 일을 입력하세요" autocomplete="off" />
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="priority">중요도</label>
+            <select id="priority">
+              <option value="HIGH">HIGH</option>
+              <option value="MEDIUM" selected>MEDIUM</option>
+              <option value="LOW">LOW</option>
+            </select>
+          </div>
+          <button id="add-btn" class="btn-add" type="submit">Add</button>
+        </div>
+        <p id="form-error" class="form-error" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Today's Focus</h2>
+      <ul id="task-list" class="tasks"></ul>
+      <p id="empty" class="empty" hidden>아직 할 일이 없습니다</p>
+    </section>
+
+    <section class="card">
+      <div class="progress-head">
+        <span id="progress-text">완료 0 / 0</span>
+        <span id="progress-percent">0%</span>
+      </div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="bar">
+        <div id="bar-fill" class="bar-fill"></div>
+      </div>
+      <p id="celebrate" class="celebrate" hidden>🎉 오늘의 할 일을 모두 완료했어요!</p>
+    </section>
+  </main>
+
+  <script>
+    // ===== DOM 요소 =====
+    const form = document.getElementById('task-form');
+    const titleInput = document.getElementById('title');
+    const prioritySelect = document.getElementById('priority');
+    const addBtn = document.getElementById('add-btn');
+    const formError = document.getElementById('form-error');
+    const banner = document.getElementById('banner');
+    const list = document.getElementById('task-list');
+    const empty = document.getElementById('empty');
+    const progressText = document.getElementById('progress-text');
+    const progressPercent = document.getElementById('progress-percent');
+    const bar = document.getElementById('bar');
+    const barFill = document.getElementById('bar-fill');
+    const celebrate = document.getElementById('celebrate');
+
+    // API 오류 (status와 서버 메시지를 함께 보관)
+    class ApiError extends Error {
+      constructor(status, message) {
+        super(message);
+        this.status = status;
+      }
+    }
+
+    // ===== API 호출 공통 함수 =====
+    async function api(path, options = {}) {
+      let res;
+      try {
+        res = await fetch(path, {
+          ...options,
+          headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
+        });
+      } catch {
+        throw new ApiError(0, '서버에 연결할 수 없습니다. 네트워크 상태를 확인하세요.');
+      }
+
+      if (res.status === 204) return null;
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message = data?.error?.message ?? `요청에 실패했습니다. (${res.status})`;
+        throw new ApiError(res.status, message);
+      }
+      return data;
+    }
+
+    // ===== 오류 표시 =====
+    function showBanner(message) {
+      banner.textContent = message;
+      banner.hidden = false;
+    }
+    function hideBanner() {
+      banner.hidden = true;
+      banner.textContent = '';
+    }
+    // 400·404 등 입력 관련 오류는 폼 아래, 나머지(네트워크·500)는 상단 배너에 표시
+    function handleError(err, { inline = false } = {}) {
+      if (inline && err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        formError.textContent = err.message;
+      } else {
+        showBanner(err.message);
+      }
+    }
+
+    // ===== 화면 그리기 =====
+    function renderTasks(tasks) {
+      list.replaceChildren();
+      empty.hidden = tasks.length > 0;
+
+      for (const task of tasks) {
+        const li = document.createElement('li');
+        li.className = 'task' + (task.done ? ' done' : '');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.done;
+        checkbox.setAttribute('aria-label', `${task.title} 완료`);
+        checkbox.addEventListener('change', () => toggleTask(task.id, checkbox.checked, checkbox));
+
+        const title = document.createElement('span');
+        title.className = 'title';
+        title.textContent = task.title; // textContent로 넣어 XSS 방지
+
+        const badge = document.createElement('span');
+        badge.className = `badge ${task.priority}`;
+        badge.textContent = task.priority;
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'btn-delete';
+        del.textContent = '삭제';
+        del.setAttribute('aria-label', `${task.title} 삭제`);
+        del.addEventListener('click', () => deleteTask(task.id, del));
+
+        li.append(checkbox, title, badge, del);
+        list.append(li);
+      }
+    }
+
+    function renderStats({ total, done, percent }) {
+      progressText.textContent = `완료 ${done} / ${total}`;
+      progressPercent.textContent = `${percent}%`;
+      barFill.style.width = `${percent}%`;
+      bar.setAttribute('aria-valuenow', String(percent));
+      celebrate.hidden = !(total > 0 && done === total);
+    }
+
+    // 목록과 진행률을 서버에서 다시 받아 갱신
+    async function refresh() {
+      try {
+        const [tasks, stats] = await Promise.all([api('/api/tasks'), api('/api/tasks/stats')]);
+        renderTasks(tasks);
+        renderStats(stats);
+        hideBanner();
+      } catch (err) {
+        handleError(err);
+      }
+    }
+
+    // ===== 동작 =====
+    async function addTask(event) {
+      event.preventDefault();
+      formError.textContent = '';
+      addBtn.disabled = true;
+      try {
+        // 빈 제목도 그대로 보내서 API의 400 메시지를 화면에 보여준다
+        await api('/api/tasks', {
+          method: 'POST',
+          body: JSON.stringify({ title: titleInput.value, priority: prioritySelect.value }),
+        });
+        titleInput.value = '';
+        await refresh();
+      } catch (err) {
+        handleError(err, { inline: true });
+      } finally {
+        addBtn.disabled = false;
+        titleInput.focus();
+      }
+    }
+
+    async function toggleTask(id, done, checkbox) {
+      checkbox.disabled = true;
+      try {
+        await api(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ done }) });
+      } catch (err) {
+        handleError(err);
+      }
+      await refresh(); // 실패해도 서버 상태로 되돌려 표시
+    }
+
+    async function deleteTask(id, button) {
+      button.disabled = true;
+      try {
+        await api(`/api/tasks/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        handleError(err);
+      }
+      await refresh();
+    }
+
+    form.addEventListener('submit', addTask);
+    titleInput.addEventListener('input', () => { formError.textContent = ''; });
+
+    refresh();
+  </script>
+</body>
+</html>
