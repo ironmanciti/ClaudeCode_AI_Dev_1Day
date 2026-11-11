@@ -52,9 +52,7 @@
 
 | 파일 | 역할 |
 |---|---|
-| `public/index.html` | 화면 구조 |
-| `public/style.css` | 카드형 디자인, 반응형 |
-| `public/app.js` | API 호출, 화면 갱신 |
+| `public/index.html` | 화면 구조 + `<style>`(카드형 디자인, 반응형) + `<script>`(API 호출, 화면 갱신)를 한 파일에 작성 |
 
 화면 구성 (아이디어):
 ```
